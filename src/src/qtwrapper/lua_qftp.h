@@ -1,8 +1,7 @@
 #ifndef LUA_QFTP_H
 #define LUA_QFTP_H
 #include "lua_qt_wrapper.hpp"
-#include <QFtp>
-
+#include <QtNetwork>
 typedef class_<QFtp,QObject> LQFtp;
 typedef class_<QUrlInfo> LQUrlInfo;
 

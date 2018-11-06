@@ -72,12 +72,12 @@ BEGIN
     BEGIN
         BLOCK "080404b0"
         BEGIN
-            VALUE "CompanyName", "lxyppc"
+            VALUE "CompanyName", "XToolbox"
             VALUE "FileDescription", "XToolbox"
             VALUE "FileVersion", "0, 0, 1, 0"
             VALUE "InternalName", "XToolbox"
-            VALUE "LegalCopyright", "Copyright (C) 2012 lxyppc"
-            VALUE "LegalTrademarks", "lxyppc"
+            VALUE "LegalCopyright", "Copyright (C) 2018 XToolbox"
+            VALUE "LegalTrademarks", "XToolbox"
             VALUE "OriginalFilename", "XToolbox.exe"
             VALUE "ProductName", "X Toolbox"
             VALUE "ProductVersion", "0, 0, 1, 0"

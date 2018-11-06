@@ -111,8 +111,11 @@ namespace luabind { namespace detail
 			lua_pushstring(L, "invalid construct, expected class name");
 			lua_error(L);
 		}
-
+#if LUA_VERSION_NUM > 501
+        if (std::strlen(lua_tostring(L, 1)) != lua_rawlen(L, 1))
+#else
 		if (std::strlen(lua_tostring(L, 1)) != lua_strlen(L, 1))
+#endif
 		{
 			lua_pushstring(L, "luabind does not support class names with extra nulls");
 			lua_error(L);
@@ -126,10 +129,14 @@ namespace luabind { namespace detail
 		new(c) class_rep(L, name);
 
 		// make the class globally available
+#if LUA_VERSION_NUM > 501
+		lua_pushvalue(L, -1);
+        lua_setglobal(L, name);
+#else
 		lua_pushstring(L, name);
 		lua_pushvalue(L, -2);
 		lua_settable(L, LUA_GLOBALSINDEX);
-
+#endif
 		// also add it to the closure as return value
 		lua_pushcclosure(L, &stage2, 1);
 

@@ -1,4 +1,4 @@
-#include <QtGui/QApplication>
+#include <QApplication>
 #include <QMutex>
 #include "mainwindow.h"
 #include "lua.hpp"
@@ -26,7 +26,11 @@ int main(int argc, char *argv[])
     QApplication::instance()->installTranslator(translator);
 
     int ret = 0;
+#if LUA_VERSION_NUM > 501
+    lua_State* L = luaL_newstate();
+#else
     lua_State* L = lua_open();
+#endif
     luaL_openlibs(L);
     luaopen_luagl(L);
     luaopen_luaglu(L);

@@ -50,5 +50,5 @@ void MainWindow::my_about()
 {
     QMessageBox::about(this,
         tr("X Toolbox (Beta)"),
-        tr("<p><b>X Toolbox(Beta)</b></p><p>by lxyppc</p><a href=\"mailto:lxyppc@163.com\">lxyppc@163.com</a>"));
+        tr("<p><b>X Toolbox(Beta)</b></p><p><a href=\"http://xtoolbox.org\">xtoolbox.org</a></p><a href=\"mailto:admin@xtoolbox.org\">admin@xtoolbox.org</a>"));
 }
