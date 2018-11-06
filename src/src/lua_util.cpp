@@ -205,6 +205,18 @@ static QString show_bytes4(const QByteArray& arr)
     return show_bytes3(arr, 16);
 }
 
+static bool g_isStringAsByteArray = true;
+namespace luabind{
+bool isStringAsByteArray(void)
+{
+    return g_isStringAsByteArray;
+}
+}
+static void setStringAsByteArray(bool newValue)
+{
+    g_isStringAsByteArray = newValue;
+}
+
 LQUtil lqutil()
 {
     return
@@ -319,7 +331,10 @@ LQUtil lqutil()
         def("showBytes", show_bytes1),
         def("showBytes", show_bytes2),
         def("showBytes", show_bytes3),
-        def("showBytes", show_bytes4)
+        def("showBytes", show_bytes4),
+
+        def("setStringAsByteArray", setStringAsByteArray),
+        def("isStringAsByteArray", luabind::isStringAsByteArray)
     ]
     ;
 }

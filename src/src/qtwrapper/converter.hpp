@@ -204,18 +204,25 @@ struct default_converter<QVector<T> const&>
   : default_converter<QVector<T> >
 {};
 
-
+bool isStringAsByteArray(void);
 template <>
 struct default_converter<QByteArray>
   : native_converter_base<QByteArray>
 {
     static int compute_score(lua_State* L, int index)
     {
-        return lua_type(L, index) == LUA_TTABLE ? 0 : -1;
+        int t = lua_type(L, index);
+        return t == LUA_TTABLE || t == LUA_TSTRING ? 0 : -1;
     }
 
     QByteArray from(lua_State* L, int index)
     {
+        int t = lua_type(L, index);
+        if(t == LUA_TSTRING){
+            size_t len;
+            const char* str = lua_tolstring(L,index,&len);
+            return QByteArray(str, len);
+        }
         object obj(luabind::from_stack(L,index));
         QByteArray arr;
         for(iterator i(obj),e; i!=e; ++i){
@@ -230,6 +237,10 @@ struct default_converter<QByteArray>
 
     void to(lua_State* L, QByteArray const& arr)
     {
+        if(isStringAsByteArray()){
+            lua_pushlstring(L, arr.data(), arr.size());
+            return;
+        }
         object obj = luabind::newtable(L);
         for(int i=0;i<arr.length();i++){
             obj[i+1] = (int)arr.at(i);
