@@ -50,6 +50,7 @@ SOURCES += ./src/main.cpp \
     src/protowrapper/lua_socket.cpp \
     src/qtwrapper/lua_qurl.cpp \
     src/protowrapper/lua_usbhid.cpp \
+    src/protowrapper/lua_libusb.cpp \
     src/qtwrapper/lua_qfile.cpp \
     src/qtwrapper/lua_qftp.cpp \
     src/protowrapper/lua_qglviewer.cpp \
@@ -266,6 +267,49 @@ HEADERS *= luagl/include/luagl.h \
     luagl/include/luaglu.h
 
 # lua gl source end
+
+
+
+
+# -------------------------------------------------
+# sources for libusb
+# -------------------------------------------------
+DEFINES += _WIN32_WINNT=0x0500
+
+INCLUDEPATH += libusb-1.0.21 libusb-1.0.21/libusb
+HEADERS += libusb-1.0.21/libusb/libusbi.h \
+           libusb-1.0.21/libusb/libusb.h \
+           libusb-1.0.21/libusb/version.h \
+           libusb-1.0.21/libusb/version_nano.h \
+           libusb-1.0.21/libusb/os/poll_windows.h \
+           libusb-1.0.21/libusb/os/threads_windows.h \
+           libusb-1.0.21/libusb/os/windows_common.h \
+           libusb-1.0.21/libusb/os/windows_nt_common.h \
+           libusb-1.0.21/libusb/os/windows_winusb.h
+
+SOURCES += libusb-1.0.21/libusb/core.c \
+           libusb-1.0.21/libusb/descriptor.c \
+           libusb-1.0.21/libusb/hotplug.c \
+           libusb-1.0.21/libusb/io.c \
+           libusb-1.0.21/libusb/strerror.c \
+           libusb-1.0.21/libusb/sync.c
+win32{
+SOURCES += libusb-1.0.21/libusb/os/poll_windows.c \
+           libusb-1.0.21/libusb/os/threads_windows.c \
+           libusb-1.0.21/libusb/os/windows_nt_common.c \
+           libusb-1.0.21/libusb/os/windows_winusb.c
+}
+
+
+# -------------------------------------------------
+# sources for qlibusb
+# -------------------------------------------------
+INCLUDEPATH += qlibusb
+HEADERS += qlibusb/qlibusb.h \
+           qlibusb/config.h
+SOURCES += qlibusb/qlibusb.cpp \
+           qlibusb/qlibusb_ex.c
+
 
 
 # qr encode source

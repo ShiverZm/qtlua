@@ -1,9 +1,11 @@
+#include "lua_qt_wrapper.hpp"
 #include "qluaslot.h"
 #include <QDebug>
 #include "../../qextserialport/qextserialenumerator.h"
 //#ifdef Q_OS_WIN
 #include "../../qusbhid/qusbhid.h"
 //#endif
+#include "../../qlibusb/qlibusb.h"
 #include <QFtp>
 
 QLuaSlot::QLuaSlot(const QString& signature, bool autoDelete) :
@@ -561,3 +563,15 @@ void QLuaSlot::general_slot(const QUsbHidInfo& param1)
     if(m_delete_when_done)this->deleteLater();
 }
 //#endif
+
+void QLuaSlot::general_slot(int param1, const QByteArray& param2)
+{
+    ::gen_slot(m_obj,m_method,param1, param2);
+    if(m_delete_when_done)this->deleteLater();
+}
+
+void QLuaSlot::general_slot(const QLibUsbInfo& param1)
+{
+    ::gen_slot(m_obj,m_method,param1);
+    if(m_delete_when_done)this->deleteLater();
+}

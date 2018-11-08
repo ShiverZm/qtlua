@@ -7,6 +7,7 @@
 #include "../protowrapper/lua_serial.h"
 #include "../protowrapper/lua_socket.h"
 #include "../protowrapper/lua_usbhid.h"
+#include "../protowrapper/lua_libusb.h"
 #include "../protowrapper/lua_qglviewer.h"
 #include "../lua_util.h"
 #include <luabind/out_value_policy.hpp>
@@ -431,6 +432,11 @@ void register_classes(lua_State* L, char const* name = 0)
         lqusbhid(),
         lqhidattr(),
         lqhidcaps(),
+
+        lqlibusbinfo(),
+        lqlibusbepinfo(),
+        lqlibusbinterfaceinfo(),
+        lqlibusb(),
 
         lqglwidget(),
         lqglviewer(),

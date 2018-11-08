@@ -9,6 +9,7 @@
 using namespace luabind;
 struct QextPortInfo;
 struct QUsbHidInfo;
+struct QLibUsbInfo;
 class QLuaSlot : public QObject
 {
 Q_OBJECT
@@ -86,6 +87,8 @@ public slots:
     void general_slot(Qt::SortOrder param1);
 //#ifdef Q_OS_WIN
     void general_slot(const QUsbHidInfo&);
+    void general_slot(int param1, const QByteArray& param2);
+    void general_slot(const QLibUsbInfo& param1);
 //#endif
 private:
     object m_obj;
