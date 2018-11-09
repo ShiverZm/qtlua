@@ -138,8 +138,6 @@ static bool get_usb_info(libusb_device *dev, QLibUsbInfo &info, int vid = 0, int
                 info.bus = libusb_get_bus_number(dev);
                 info.address = libusb_get_device_address(dev);
                 info.port = libusb_get_port_number(dev);
-                info.vid = desc.idVendor;
-                info.pid = desc.idProduct;
                 info.speed = libusb_get_device_speed(dev);
                 int path_len = libusb_get_port_numbers(dev, ports, sizeof(ports));
                 info.ports.clear();

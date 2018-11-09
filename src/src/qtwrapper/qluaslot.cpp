@@ -202,8 +202,27 @@ inline void gen_slot(const object& m_obj, const QString& m_method)
     try{
         general_slot(m_obj,m_method);
     }
+    catch (luabind::error const& e)
+    {
+            std::cerr << "Terminated with exception: \"" << e.what() << "\"\n"
+                    << lua_tostring(e.state(), -1) << "\n";
+            return;
+    }
+    catch (std::exception const& e)
+    {
+            std::cerr << "Terminated with exception: \"" << e.what() << "\"\n";
+            return;
+    }
+    catch (std::string const &e)
+    {
+            std::cerr << "Terminated with unknown exception\n" << e;
+            return;
+    }
     catch (...)
-    {}
+    {
+            std::cerr << "Terminated with unknown exception\n";
+            return;
+    }
 }
 
 template<typename T>
@@ -212,8 +231,27 @@ inline void gen_slot(const object& m_obj, const QString& m_method, T t)
     try{
         general_slot(m_obj,m_method,t);
     }
+    catch (luabind::error const& e)
+    {
+            std::cerr << "Terminated with exception: \"" << e.what() << "\"\n"
+                    << lua_tostring(e.state(), -1) << "\n";
+            return;
+    }
+    catch (std::exception const& e)
+    {
+            std::cerr << "Terminated with exception: \"" << e.what() << "\"\n";
+            return;
+    }
+    catch (std::string const &e)
+    {
+            std::cerr << "Terminated with unknown exception\n" << e;
+            return;
+    }
     catch (...)
-    {}
+    {
+            std::cerr << "Terminated with unknown exception\n";
+            return;
+    }
 }
 
 template<typename T1, typename T2>
@@ -222,8 +260,27 @@ inline void gen_slot(const object& m_obj, const QString& m_method, T1 t1, T2 t2)
     try{
         general_slot(m_obj,m_method,t1,t2);
     }
+    catch (luabind::error const& e)
+    {
+            std::cerr << "Terminated with exception: \"" << e.what() << "\"\n"
+                    << lua_tostring(e.state(), -1) << "\n";
+            return;
+    }
+    catch (std::exception const& e)
+    {
+            std::cerr << "Terminated with exception: \"" << e.what() << "\"\n";
+            return;
+    }
+    catch (std::string const &e)
+    {
+            std::cerr << "Terminated with unknown exception\n" << e;
+            return;
+    }
     catch (...)
-    {}
+    {
+            std::cerr << "Terminated with unknown exception\n";
+            return;
+    }
 }
 template<typename T1, typename T2, typename T3>
 inline void gen_slot(const object& m_obj, const QString& m_method, T1 t1, T2 t2, T3 t3)
@@ -231,8 +288,27 @@ inline void gen_slot(const object& m_obj, const QString& m_method, T1 t1, T2 t2,
     try{
         general_slot(m_obj,m_method,t1,t2,t3);
     }
+    catch (luabind::error const& e)
+    {
+            std::cerr << "Terminated with exception: \"" << e.what() << "\"\n"
+                    << lua_tostring(e.state(), -1) << "\n";
+            return;
+    }
+    catch (std::exception const& e)
+    {
+            std::cerr << "Terminated with exception: \"" << e.what() << "\"\n";
+            return;
+    }
+    catch (std::string const &e)
+    {
+            std::cerr << "Terminated with unknown exception\n" << e;
+            return;
+    }
     catch (...)
-    {}
+    {
+            std::cerr << "Terminated with unknown exception\n";
+            return;
+    }
 }
 template<typename T1, typename T2, typename T3, typename T4>
 inline void gen_slot(const object& m_obj, const QString& m_method, T1 t1, T2 t2, T3 t3, T4 t4)
@@ -240,8 +316,27 @@ inline void gen_slot(const object& m_obj, const QString& m_method, T1 t1, T2 t2,
     try{
         general_slot(m_obj,m_method,t1,t2,t3,t4);
     }
+    catch (luabind::error const& e)
+    {
+            std::cerr << "Terminated with exception: \"" << e.what() << "\"\n"
+                    << lua_tostring(e.state(), -1) << "\n";
+            return;
+    }
+    catch (std::exception const& e)
+    {
+            std::cerr << "Terminated with exception: \"" << e.what() << "\"\n";
+            return;
+    }
+    catch (std::string const &e)
+    {
+            std::cerr << "Terminated with unknown exception\n" << e;
+            return;
+    }
     catch (...)
-    {}
+    {
+            std::cerr << "Terminated with unknown exception\n";
+            return;
+    }
 }
 
 void QLuaSlot::general_slot()

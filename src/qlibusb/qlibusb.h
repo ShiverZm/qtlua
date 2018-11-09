@@ -12,8 +12,6 @@ struct QLibUsbInfo
     QLibUsbInfo(){}
     ~QLibUsbInfo(){}
     QLibUsbInfo(const QLibUsbInfo& info){
-        this->vid = info.vid;
-        this->pid = info.pid;
         this->bus = info.bus;
         this->port = info.port;
         this->address = info.address;
@@ -23,8 +21,6 @@ struct QLibUsbInfo
         this->path = info.path;
     }
     QLibUsbInfo& operator= (const QLibUsbInfo& info){
-        this->vid = info.vid;
-        this->pid = info.pid;
         this->bus = info.bus;
         this->port = info.port;
         this->address = info.address;
@@ -42,14 +38,23 @@ struct QLibUsbInfo
     }
     QString toString()const{
         return path + QString("\nVID: %1, PID: %2, BUS:%3, Port:%4, Addr:%5, Speed:%6\n  Device Descriptor:\n  %7")
-                .arg(vid,4,16).arg(pid,4,16).arg(bus).arg(port).arg(address).arg(speed).arg(deviceDescriptor.toHex().data());
+                .arg(VID(),4,16).arg(PID(),4,16).arg(bus).arg(port).arg(address).arg(speed).arg(deviceDescriptor.toHex().data());
     }
-    int vid;
-    int pid;
     int bus;
     int port;
     int address;
     int speed;
+    int VID()const{ return ((struct libusb_device_descriptor*)deviceDescriptor.constData())->idVendor; }
+    int PID()const{ return ((struct libusb_device_descriptor*)deviceDescriptor.constData())->idProduct; }
+    int bcdDevice()const{ return ((struct libusb_device_descriptor*)deviceDescriptor.constData())->bcdDevice;  }
+    int deviceClass()const{ return ((struct libusb_device_descriptor*)deviceDescriptor.constData())->bDeviceClass;  }
+    int deviceSubClass()const{ return ((struct libusb_device_descriptor*)deviceDescriptor.constData())->bDeviceSubClass;  }
+    int deviceProtocol()const{ return ((struct libusb_device_descriptor*)deviceDescriptor.constData())->bDeviceProtocol;  }
+    int bcdUSB()const{ return ((struct libusb_device_descriptor*)deviceDescriptor.constData())->bcdUSB;}
+    int manufacture()const{ return ((struct libusb_device_descriptor*)deviceDescriptor.constData())->iManufacturer;}
+    int product()const{ return ((struct libusb_device_descriptor*)deviceDescriptor.constData())->iProduct;}
+    int serialNumber()const{ return ((struct libusb_device_descriptor*)deviceDescriptor.constData())->iSerialNumber;}
+    int configCount()const{ return ((struct libusb_device_descriptor*)deviceDescriptor.constData())->bNumConfigurations;}
     QString path;
     QByteArray deviceDescriptor;
     QList<int> ports;

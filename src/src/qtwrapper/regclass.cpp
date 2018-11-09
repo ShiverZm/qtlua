@@ -512,7 +512,7 @@ void run_script_init(MainWindow* mainwindow)
         }
     }
     if(!file.exists()){
-        file.setFileName("../src/script.lua");
+        file.setFileName("xtool_init.lua");
     }
     if(!file.exists()){
         file.setFileName("script/script.lua");
