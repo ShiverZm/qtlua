@@ -4,21 +4,24 @@
 #include <QMutex>
 #include <QMutexLocker>
 
-#define ERR(args...)  fprintf(stderr, ##args)
-#define WARNING(args...)  fprintf(stdout, ##args)
-#define DBG(args...)  fprintf(stdout, ##args)
+//#define ERR(args...)  sprintf(stderr, ##args)
+//#define WARNING(args...)  sprintf(stdout, ##args)
+//#define DBG(args...)  sprintf(stdout, ##args)
+
+#define QDBG(tag, args...) do{\
+    char temp[4096] = tag;\
+    sprintf(temp + 7, ##args);\
+    qDebug()<<temp;\
+}while(0)
+#define ERR(args...)      QDBG("ERROR   ", ##args)
+#define WARNING(args...)  QDBG("WARNING ", ##args)
+#define DBG(args...)      QDBG("DEBUG   ", ##args)
 
 class QLibUsbMonitor : protected QThread
 {
 public:
     static void SetSupportHotplug(bool hotplug){
         geteMonitor()->setSupportHotplug(hotplug);
-    }
-    static void AddDevice(void){
-        geteMonitor()->addDevice();
-    }
-    static void ReleaseDevice(void){
-        geteMonitor()->releaseDevice();
     }
 private:
 static QLibUsbMonitor* theMonitor;
@@ -64,8 +67,8 @@ protected:
         {
             if(deviceCount()>0){
                 int r = libusb_handle_events(NULL);
-                if(r == LIBUSB_ERROR_NOT_FOUND)return;
-                qDebug()<<"handle return"<<r;
+                qDebug()<<"handle return"<<r <<" "<<libusb_error_name(r);
+                //if(r == LIBUSB_ERROR_NOT_FOUND)return;
                 this->msleep(1);
             }else{
                 qDebug()<<"Device count is 0, quit the monitor thread";
@@ -81,6 +84,48 @@ private:
     QMutex m_mutex;
 };
 QLibUsbMonitor* QLibUsbMonitor::theMonitor = 0;
+
+
+void QLibUsbThread::startMonitor(libusb_context* ctx)
+{
+    m_ctx = ctx;
+    if(m_ctx){
+        if(!isRunning()){
+            start();
+        }
+    }
+}
+void QLibUsbThread::stopMonitor()
+{
+    if(isRunning()){
+        libusb_context* ctx = m_ctx;
+        m_ctx = NULL;
+        this->wait();
+        struct timeval tv;
+        tv.tv_sec = 0;
+        tv.tv_usec = 10000;
+        if(ctx){
+            libusb_handle_events_timeout(ctx, &tv);
+        }
+
+    }
+}
+
+void QLibUsbThread::run()
+{
+    qDebug() << "QLibUsb monitor thread running: " << QThread::currentThreadId();
+    while (true)
+    {
+        if(m_ctx){
+            int r = libusb_handle_events(m_ctx);
+            qDebug()<<"QLibUsbThread handle return"<<r <<" "<<libusb_error_name(r);
+            this->msleep(1);
+        }else{
+            qDebug()<<"Context is NULL, Quit the QLibUsbThread thread";
+            return;
+        }
+    }
+}
 
 static int LIBUSB_CALL hotplug_callback_attach(libusb_context *ctx, libusb_device *dev, libusb_hotplug_event event, void *user_data)
 {
@@ -227,8 +272,9 @@ QList<QLibUsbInfo> QLibUsb::enumDevices(int vid, int pid)
 
 
 QLibUsb::QLibUsb(QObject* parent)
-    :QObject(parent)
+    :QObject(parent),m_monitor(this)
 {
+    m_context = NULL;
     m_devList.insert(this, true);
 }
 
@@ -247,12 +293,12 @@ void QLibUsb::hotplugCallback(const QLibUsbInfo& info, bool isArrival)
     }
 }
 
-static int open_usb(const QLibUsbInfo &info, libusb_device_handle **handle)
+static int open_usb(const QLibUsbInfo &info, libusb_device_handle **handle, libusb_context* context= NULL)
 {
     libusb_device **devs;
     ssize_t cnt;
     int r = LIBUSB_ERROR_NO_DEVICE;
-    cnt = libusb_get_device_list(NULL, &devs);
+    cnt = libusb_get_device_list(context, &devs);
     if (cnt < 0)
     {
         ERR("get usb device list error %d when open", cnt);
@@ -325,20 +371,35 @@ void QLibUsb::close()
 {
     foreach(QLibUsbEP* ep, m_readEps){
         if(ep){
+            ep->cancel();
+        }
+    }
+    foreach(const QLibUsbInerfaceInfo& i, m_interfaces){
+        if(m_handle){
+            int r = libusb_release_interface(m_handle, i.bInterfaceNumber);
+        }
+    }
+    m_interfaces.clear();
+
+    if(m_context){
+        m_monitor.stopMonitor();
+    }
+
+    foreach(QLibUsbEP* ep, m_readEps){
+        if(ep){
             delete ep;
         }
     }
     m_readEps.clear();
-    foreach(const QLibUsbInerfaceInfo& i, m_interfaces){
-        if(m_handle){
-            libusb_release_interface(m_handle, i.bInterfaceNumber);
-        }
-    }
-    m_interfaces.clear();
+
     if (m_handle){
-        QLibUsbMonitor::ReleaseDevice();
         libusb_close(m_handle);
         m_handle = NULL;
+    }
+
+    if(m_context){
+        libusb_exit(m_context);
+        m_context = NULL;
     }
 }
 
@@ -346,13 +407,20 @@ bool QLibUsb::open(const QLibUsbInfo& info, int bufSize)
 {
     int r = 0;
     m_info = info;
-    if ( (r = open_usb(m_info, &m_handle)) < 0){
+    r = libusb_init(&m_context);
+    if(r<0){
+        ERR("Fail to init context %s", libusb_error_name(r));
+        m_context = NULL;
+        return false;
+    }
+    if ( (r = open_usb(m_info, &m_handle, m_context)) < 0){
         ERR("Fail to open device %s", info.toString().toStdString().c_str());
         m_handle = NULL;
         m_lastError = r;
         return false;
     }
-    QLibUsbMonitor::AddDevice();
+    //QLibUsbMonitor::AddDevice();
+    m_monitor.startMonitor(m_context);
     libusb_config_descriptor *cfg = NULL;
     libusb_device *dev = libusb_get_device(m_handle);
     r = libusb_get_active_config_descriptor(dev, &cfg);
@@ -364,7 +432,7 @@ bool QLibUsb::open(const QLibUsbInfo& info, int bufSize)
     }
     m_interfaces.clear();
     for (int j = 0; j < cfg->bNumInterfaces; j++){
-        const struct libusb_interface_descriptor *interface_desc = cfg->interface->altsetting + j;
+        const struct libusb_interface_descriptor *interface_desc = (cfg->interface+j)->altsetting;
         m_interfaces.append(QLibUsbInerfaceInfo(interface_desc));
     }
     libusb_free_config_descriptor(cfg);
@@ -437,41 +505,6 @@ int QLibUsb::write(int epAddr, const QByteArray& d, bool needZeroPacket, unsigne
             }
             return actLen;
         }
-
-        if(0){
-            do{
-                r = libusb_interrupt_transfer(m_handle, it->bEndpointAddress, (uint8_t*)data, it->wMaxPacketSize, &actLen, timeout);
-                if(r < 0){
-                    ERR("USB interrupr read error %s", libusb_error_name(r));
-                    m_lastError = r;
-                    return r;
-                }
-                total_write += actLen;
-                if(len >= it->wMaxPacketSize){
-                    len -= it->wMaxPacketSize;
-                    data += it->wMaxPacketSize;
-                }else{
-                    len = 0;
-                }
-            }while(len > 0);
-            return total_write;
-        }else if(0 && LIBUSB_TRANSFER_TYPE_BULK == it->bmAttributes){
-            r = libusb_bulk_transfer(m_handle, it->bEndpointAddress, (uint8_t*)data, len, &actLen, timeout);
-            if(r < 0){
-                ERR("USB bulk write error %s", libusb_error_name(r));
-                m_lastError = r;
-                return r;
-            }
-            if( needZeroPacket && (len % it->wMaxPacketSize) == 0 ){
-                r = libusb_bulk_transfer(m_handle, it->bEndpointAddress, (uint8_t*)data, 0, NULL, timeout);
-                if(r<0){
-                    ERR("USB bulk write 0 byte error %s", libusb_error_name(r));
-                    m_lastError = r;
-                    return r;
-                }
-            }
-            return actLen;
-        }
         ERR("Transfer type not support for write");
         r = LIBUSB_ERROR_NOT_SUPPORTED;
         m_lastError = r;
@@ -501,14 +534,7 @@ QLibUsbEP::QLibUsbEP(QLibUsb& parent, const QLibUsbEPInfo& epInfo, int buffer_si
 }
 
 QLibUsbEP::~QLibUsbEP(){
-    if(m_xfer){
-        libusb_cancel_transfer(m_xfer);
-        libusb_free_transfer(m_xfer);
-        m_xfer = 0;
-    }
-    if(m_buf){
-        delete [] m_buf;
-    }
+    cenceled();
 }
 
 void LIBUSB_CALL QLibUsbEP::completeCallback(libusb_transfer *xfer)
@@ -524,6 +550,7 @@ void LIBUSB_CALL QLibUsbEP::completeCallback(libusb_transfer *xfer)
                 break;
             case LIBUSB_TRANSFER_CANCELLED:
                 DBG("LIBUSB_TRANSFER_CANCELLED");
+                return;
                 break;
             case LIBUSB_TRANSFER_NO_DEVICE:
                 DBG("LIBUSB_TRANSFER_NO_DEVICE");
@@ -548,16 +575,36 @@ void LIBUSB_CALL QLibUsbEP::completeCallback(libusb_transfer *xfer)
     }
 }
 
+void QLibUsbEP::cenceled()
+{
+    if(m_xfer){
+        //libusb_cancel_transfer(m_xfer);
+        libusb_free_transfer(m_xfer);
+        m_xfer = 0;
+    }
+    if(m_buf){
+        delete [] m_buf;
+        m_buf = 0;
+    }
+}
+
+void QLibUsbEP::cancel()
+{
+    if(m_xfer){
+        libusb_cancel_transfer(m_xfer);
+    }
+}
+
 bool QLibUsbEP::init()
 {
     if(m_xfer){
         libusb_cancel_transfer(m_xfer);
-        libusb_free_transfer(m_xfer);
+        //libusb_free_transfer(m_xfer);
         m_xfer = 0;
     }
     if(m_info.isIn()){
         if(m_info.bmAttributes == LIBUSB_TRANSFER_TYPE_INTERRUPT){
-            m_xfer = libusb_alloc_transfer(0);
+            m_xfer = m_xfer?m_xfer:libusb_alloc_transfer(0);
             libusb_fill_interrupt_transfer(m_xfer,
                                 m_parent.handle(),
                                 m_info.bEndpointAddress, // Endpoint ID
@@ -568,7 +615,7 @@ bool QLibUsbEP::init()
                                 0
                                 );
         }else if(m_info.bmAttributes == LIBUSB_TRANSFER_TYPE_BULK){
-            m_xfer = libusb_alloc_transfer(0);
+            m_xfer = m_xfer?m_xfer:libusb_alloc_transfer(0);
             libusb_fill_bulk_transfer(m_xfer,
                                 m_parent.handle(),
                                 m_info.bEndpointAddress, // Endpoint ID
@@ -584,7 +631,8 @@ bool QLibUsbEP::init()
         }
     }
     if(m_xfer){
-        int r = libusb_submit_transfer(m_xfer);
+        int r = 0;
+        r = libusb_submit_transfer(m_xfer);
         if( r < 0 ){
             ERR("fail to re-submit transfer %s", libusb_error_name(r));
             libusb_free_transfer(m_xfer);

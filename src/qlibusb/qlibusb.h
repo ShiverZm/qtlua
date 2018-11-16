@@ -6,6 +6,7 @@
 #include "libusb.h"
 #include <QList>
 #include <QMap>
+#include <QThread>
 
 struct QLibUsbInfo
 {
@@ -173,6 +174,8 @@ public:
     QLibUsbEP(QLibUsb& parent, const QLibUsbEPInfo& epInfo, int buffer_size = 4096);
     ~QLibUsbEP();
     bool init();
+    void cancel();
+    void cenceled();
     QLibUsbEPInfo info()const{ return m_info; }
     static void LIBUSB_CALL completeCallback(libusb_transfer *transfer);
 private:
@@ -181,6 +184,18 @@ private:
     struct libusb_transfer* m_xfer;
     uint8_t* m_buf;
     uint32_t m_bufSize;
+};
+
+class QLibUsbThread: public QThread
+{
+public:
+    QLibUsbThread(QObject *parent = 0):QThread(parent),m_ctx(NULL){}
+    void startMonitor(libusb_context* ctx);
+    void stopMonitor();
+protected:
+    virtual void run();
+private:
+    libusb_context* m_ctx;
 };
 
 class QLibUsb : public QObject
@@ -242,6 +257,8 @@ private:
     QMap<int, QLibUsbEPInfo> m_writeEps;
     int m_lastError;
     static QMap<QLibUsb*, bool> m_devList;
+    libusb_context* m_context;
+    QLibUsbThread   m_monitor;
 };
 
 #endif // QUSBHID_H

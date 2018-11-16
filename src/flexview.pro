@@ -274,30 +274,31 @@ HEADERS *= luagl/include/luagl.h \
 # -------------------------------------------------
 # sources for libusb
 # -------------------------------------------------
-DEFINES += _WIN32_WINNT=0x0500
+DEFINES += _WIN32_WINNT=0x0500 FACILITY_SETUPAPI=15
 
-INCLUDEPATH += libusb-1.0.21 libusb-1.0.21/libusb
-HEADERS += libusb-1.0.21/libusb/libusbi.h \
-           libusb-1.0.21/libusb/libusb.h \
-           libusb-1.0.21/libusb/version.h \
-           libusb-1.0.21/libusb/version_nano.h \
-           libusb-1.0.21/libusb/os/poll_windows.h \
-           libusb-1.0.21/libusb/os/threads_windows.h \
-           libusb-1.0.21/libusb/os/windows_common.h \
-           libusb-1.0.21/libusb/os/windows_nt_common.h \
-           libusb-1.0.21/libusb/os/windows_winusb.h
+INCLUDEPATH += libusb-1.0.22 libusb-1.0.22/libusb
+HEADERS += libusb-1.0.22/libusb/libusbi.h \
+           libusb-1.0.22/libusb/libusb.h \
+           libusb-1.0.22/libusb/version.h \
+           libusb-1.0.22/libusb/version_nano.h \
+           libusb-1.0.22/libusb/os/poll_windows.h \
+           libusb-1.0.22/libusb/os/threads_windows.h \
+           libusb-1.0.22/libusb/os/windows_common.h \
+           libusb-1.0.22/libusb/os/windows_nt_common.h \
+           libusb-1.0.22/libusb/os/windows_winusb.h
 
-SOURCES += libusb-1.0.21/libusb/core.c \
-           libusb-1.0.21/libusb/descriptor.c \
-           libusb-1.0.21/libusb/hotplug.c \
-           libusb-1.0.21/libusb/io.c \
-           libusb-1.0.21/libusb/strerror.c \
-           libusb-1.0.21/libusb/sync.c
+SOURCES += libusb-1.0.22/libusb/core.c \
+           libusb-1.0.22/libusb/descriptor.c \
+           libusb-1.0.22/libusb/hotplug.c \
+           libusb-1.0.22/libusb/io.c \
+           libusb-1.0.22/libusb/strerror.c \
+           libusb-1.0.22/libusb/sync.c
 win32{
-SOURCES += libusb-1.0.21/libusb/os/poll_windows.c \
-           libusb-1.0.21/libusb/os/threads_windows.c \
-           libusb-1.0.21/libusb/os/windows_nt_common.c \
-           libusb-1.0.21/libusb/os/windows_winusb.c
+SOURCES += libusb-1.0.22/libusb/os/poll_windows.c \
+           libusb-1.0.22/libusb/os/threads_windows.c \
+           libusb-1.0.22/libusb/os/windows_nt_common.c \
+           libusb-1.0.22/libusb/os/windows_winusb.c \
+           libusb-1.0.22/libusb/os/windows_usbdk.c
 }
 
 
