@@ -192,6 +192,7 @@ public:
     QLibUsbThread(QObject *parent = 0):QThread(parent),m_ctx(NULL){}
     void startMonitor(libusb_context* ctx);
     void stopMonitor();
+    void preStop();
 protected:
     virtual void run();
 private:

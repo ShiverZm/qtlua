@@ -95,12 +95,21 @@ void QLibUsbThread::startMonitor(libusb_context* ctx)
         }
     }
 }
+
+void QLibUsbThread::preStop()
+{
+    m_ctx = NULL;
+}
+
 void QLibUsbThread::stopMonitor()
 {
     if(isRunning()){
         libusb_context* ctx = m_ctx;
         m_ctx = NULL;
-        this->wait();
+        this->wait(1000);
+        if(isRunning()){
+            this->terminate();
+        }
         struct timeval tv;
         tv.tv_sec = 0;
         tv.tv_usec = 10000;
@@ -382,7 +391,12 @@ void QLibUsb::close()
     m_interfaces.clear();
 
     if(m_context){
-        m_monitor.stopMonitor();
+        m_monitor.preStop();
+    }
+
+    if (m_handle){
+        libusb_close(m_handle);
+        m_handle = NULL;
     }
 
     foreach(QLibUsbEP* ep, m_readEps){
@@ -392,10 +406,7 @@ void QLibUsb::close()
     }
     m_readEps.clear();
 
-    if (m_handle){
-        libusb_close(m_handle);
-        m_handle = NULL;
-    }
+    m_monitor.stopMonitor();
 
     if(m_context){
         libusb_exit(m_context);
@@ -471,6 +482,18 @@ bool QLibUsb::open(const QLibUsbInfo& info, int bufSize)
     return true;
 }
 
+#define IS_XFERIN(xfer)		(0 != ((xfer)->endpoint & LIBUSB_ENDPOINT_IN))
+
+void LIBUSB_CALL CompleteCallbackISO(libusb_transfer *xfer)
+{
+    if(!IS_XFERIN(xfer) && xfer->type == LIBUSB_TRANSFER_TYPE_ISOCHRONOUS){
+        delete [] xfer->buffer;
+        libusb_free_transfer(xfer);
+    }else{
+        // should never reach here
+    }
+}
+
 int QLibUsb::write(int epAddr, const QByteArray& d, bool needZeroPacket, unsigned int timeout)
 {
     QMap<int, QLibUsbEPInfo>::iterator it = m_writeEps.find(epAddr);
@@ -502,6 +525,22 @@ int QLibUsb::write(int epAddr, const QByteArray& d, bool needZeroPacket, unsigne
                     m_lastError = r;
                     return r;
                 }
+            }
+            return actLen;
+        }else if(LIBUSB_TRANSFER_TYPE_ISOCHRONOUS == it->bmAttributes){
+            int num_iso_pack = 1;
+            struct libusb_transfer * xfr = libusb_alloc_transfer(num_iso_pack);
+            unsigned char* xdata = new unsigned char[len];
+            memcpy(xdata, (uint8_t*)data, len);
+            libusb_fill_iso_transfer(xfr, m_handle, it->bEndpointAddress, xdata,
+                    len, num_iso_pack, CompleteCallbackISO, this, timeout);
+            libusb_set_iso_packet_lengths(xfr, len/num_iso_pack);
+            r = libusb_submit_transfer(xfr);
+            if(r < 0){
+                ERR("Fail to submit transfer %s", libusb_error_name(r));
+                delete [] xdata;
+                libusb_free_transfer(xfr);
+                return r;
             }
             return actLen;
         }
@@ -545,8 +584,33 @@ void LIBUSB_CALL QLibUsbEP::completeCallback(libusb_transfer *xfer)
         switch(xfer->status)
         {
             case LIBUSB_TRANSFER_COMPLETED:
-            emit ep->m_parent.epDataReady(ep->m_info.bEndpointAddress, QByteArray((char *)xfer->buffer, xfer->actual_length));
-                DBG("LIBUSB_TRANSFER_COMPLETED");
+            if(IS_XFERIN(xfer)){
+                if(xfer->type == LIBUSB_TRANSFER_TYPE_ISOCHRONOUS){
+                    if(xfer->actual_length > 0){
+                        struct libusb_iso_packet_descriptor * desc = xfer->iso_packet_desc;
+                        // inplace copy make buffer data continue
+                        unsigned char * buf_actual_data = xfer->buffer;
+                        unsigned char * buf_packet_data = xfer->buffer;
+                        for(int i=0; i< xfer->num_iso_packets; i++){
+                            if(desc->status == LIBUSB_TRANSFER_COMPLETED){
+                                if(buf_actual_data != buf_packet_data){
+                                    memcpy(buf_actual_data, buf_packet_data, desc->actual_length);
+                                }
+                            }
+                            buf_actual_data += desc->actual_length;
+                            buf_packet_data += desc->length;
+                            desc++;
+                        }
+                        int real_length = buf_actual_data - xfer->buffer;
+                        if(real_length > 0){
+                            emit ep->m_parent.epDataReady(ep->m_info.bEndpointAddress, QByteArray((char *)xfer->buffer, real_length));
+                        }
+                    }
+                }else{
+                    emit ep->m_parent.epDataReady(ep->m_info.bEndpointAddress, QByteArray((char *)xfer->buffer, xfer->actual_length));
+                }
+            }
+                //DBG("LIBUSB_TRANSFER_COMPLETED");
                 break;
             case LIBUSB_TRANSFER_CANCELLED:
                 DBG("LIBUSB_TRANSFER_CANCELLED");
@@ -568,9 +632,14 @@ void LIBUSB_CALL QLibUsbEP::completeCallback(libusb_transfer *xfer)
                 DBG("LIBUSB_TRANSFER_OVERFLOW");
                 break;
         }
-        int r = libusb_submit_transfer(ep->m_xfer);
-        if( r < 0 ){
-            ERR("fail to re-submit transfer %s", libusb_error_name(r));
+        if(!IS_XFERIN(xfer)){
+           // should nerver enter here
+        }else{
+            // re submit the transfer
+            int r = libusb_submit_transfer(ep->m_xfer);
+            if( r < 0 ){
+                ERR("fail to re-submit transfer %s", libusb_error_name(r));
+            }
         }
     }
 }
@@ -625,6 +694,40 @@ bool QLibUsbEP::init()
                                 this,
                                 0
                                 );
+        }else if(m_info.bmAttributes == LIBUSB_TRANSFER_TYPE_ISOCHRONOUS){
+            int interval = m_info.bInterval;
+            // For high-speed and SuperSpeed device, the interval is 2**(bInterval-1).
+            if (libusb_get_device_speed(libusb_get_device(m_parent.handle())) >= LIBUSB_SPEED_HIGH) {
+                interval = (1 << (m_info.bInterval - 1));
+            }
+            int iso_max_packet = libusb_get_max_iso_packet_size(libusb_get_device(m_parent.handle()), m_info.bEndpointAddress);
+            // according to WinUsb_ReadIsochPipeAsap, min transfer size should be
+            // "a multiple of the maximum bytes per interval (as returned by WinUsb_QueryPipeEx) * 8 / interval."
+            int iso_transfer_size_min = iso_max_packet * 8 / interval;
+            uint32_t transfer_len = m_bufSize;
+            if(m_bufSize < iso_transfer_size_min){
+                if(m_buf){
+                    delete [] m_buf;
+                }
+                m_bufSize = iso_transfer_size_min;
+                m_buf = new uint8_t[m_bufSize];
+                transfer_len = m_bufSize;
+            }else{
+                transfer_len = (m_bufSize / iso_transfer_size_min) * iso_transfer_size_min;
+            }
+            int iso_packet_cnt = transfer_len / iso_max_packet;
+            m_xfer = m_xfer?m_xfer:libusb_alloc_transfer(iso_packet_cnt);
+
+            libusb_fill_iso_transfer(m_xfer,
+                                     m_parent.handle(),
+                                     m_info.bEndpointAddress,
+                                     m_buf,
+                                     transfer_len,
+                                     iso_packet_cnt,
+                                     QLibUsbEP::completeCallback,
+                                     this,
+                                     0);
+
         }else{
             ERR("Transfer type not support");
             return false;

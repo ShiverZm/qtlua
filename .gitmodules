@@ -1,0 +1,3 @@
+[submodule "src/libusb-1.0.22"]
+	path = src/libusb-1.0.22
+	url = https://github.com/xtoolbox/libusb.git
