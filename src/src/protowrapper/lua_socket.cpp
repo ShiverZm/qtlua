@@ -236,8 +236,8 @@ LQAbstractSocket lqabstractsocket()
     .def("flush", &QAbstractSocket::flush)
     .def("readAll", &QAbstractSocket::readAll)
     .def("read", (QByteArray (QAbstractSocket::*)(qint64))&QAbstractSocket::read)
-    .def("write", (qint64 (QAbstractSocket::*)(const char *,qint64))&QAbstractSocket::write)
-    .def("write", (qint64 (QAbstractSocket::*)(const char *))&QAbstractSocket::write)
+    //.def("write", (qint64 (QAbstractSocket::*)(const char *,qint64))&QAbstractSocket::write)
+    //.def("write", (qint64 (QAbstractSocket::*)(const char *))&QAbstractSocket::write)
     .def("write", (qint64 (QAbstractSocket::*)(const QByteArray&))&QAbstractSocket::write)
 
 
