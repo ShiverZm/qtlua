@@ -212,7 +212,13 @@ struct default_converter<QByteArray>
     static int compute_score(lua_State* L, int index)
     {
         int t = lua_type(L, index);
-        return t == LUA_TTABLE || t == LUA_TSTRING ? 0 : -1;
+        if(t == LUA_TTABLE){
+            return 2;
+        }
+        if(t == LUA_TSTRING){
+            return 1;
+        }
+        return -1;
     }
 
     QByteArray from(lua_State* L, int index)

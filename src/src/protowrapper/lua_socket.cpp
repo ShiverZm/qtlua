@@ -328,11 +328,15 @@ void lqudpsocket_readDatagram(QUdpSocket* w, qint64 max)
     if(len>=0){
         res = QByteArray::fromRawData(p,len);
     }
-    object obj = luabind::newtable(__pL);
-    for(int i=0;i<len;i++){
-        obj[i+1] = p[i];
+    if(isStringAsByteArray()){
+        ::lua_pushlstring(__pL, p, len);
+    }else{
+        object obj = luabind::newtable(__pL);
+        for(int i=0;i<len;i++){
+            obj[i+1] = p[i];
+        }
+        obj.push(__pL);
     }
-    obj.push(__pL);
     luabind::detail::make_pointee_instance(__pL, addr, boost::mpl::true_());
     ::lua_pushnumber(__pL,port);
     delete[] p;
