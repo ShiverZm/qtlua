@@ -474,7 +474,7 @@ namespace luabind { namespace detail
 		
 		void apply(lua_State* L, int val)
 		{
-			lua_pushnumber(L, val);
+                        lua_pushinteger(L, val);
 		}
 
 		template<class T>

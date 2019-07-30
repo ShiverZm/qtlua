@@ -334,7 +334,7 @@ int luabind::detail::class_rep::static_class_gettable(lua_State* L)
 
 	if (j != crep->m_static_constants.end())
 	{
-		lua_pushnumber(L, j->second);
+        lua_pushinteger(L, j->second);
 		return 1;
 	}
 

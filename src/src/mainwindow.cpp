@@ -49,6 +49,6 @@ void MainWindow::addLog(const QString& log)
 void MainWindow::my_about()
 {
     QMessageBox::about(this,
-        tr("X Toolbox (Beta 0.0.5)"),
+        tr("X Toolbox (Beta 0.0.6 20190730)"),
         tr("<p><b>X Toolbox(Beta)</b></p><p><a href=\"http://xtoolbox.org\">xtoolbox.org</a></p><a href=\"mailto:admin@xtoolbox.org\">admin@xtoolbox.org</a>"));
 }
